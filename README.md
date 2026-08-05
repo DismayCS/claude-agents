@@ -34,15 +34,21 @@ O script cria um link entre `~/.claude/agents` e a pasta `agents/` deste repo (n
 
 ## Agentes existentes
 
-- **commeta** — cria commits Git padronizados (`[NOME-COMMIT] - [TIPO]: Descrição`) sempre que uma feature/fix/refactor é concluída. Nunca dá push.
-- **ramifica** — acionado manualmente no fim do dia. Pega os commits da branch de trabalho, agrupa por escopo (`NOME-COMMIT`) e cria uma branch por escopo a partir da base (develop/main/master), via cherry-pick. Nunca dá push nem cria PR. Só apaga a branch de trabalho original depois de verificar que tudo foi replicado corretamente.
-- **concilia** — especialista em resolver conflitos de cherry-pick, acionado pelo ramifica. Diferencia conflito de texto (resolve) de dependência real entre features (converte em branch empilhada e reporta, em vez de forçar uma resolução).
-- **publica** — acionado manualmente para publicar as branches: detecta branches locais sem upstream, faz push e cria os PRs (draft) via `gh` CLI, respeitando dependências entre branches empilhadas. Sempre mostra o plano e pede confirmação antes de executar.
+- **ramifica** — acionado manualmente no **início** de uma tarefa. Abre uma worktree + branch nova isolada para a tarefa (a partir da base develop/main/master, ou a partir de outra branch/worktree em andamento, se você informar que a tarefa depende dela). Nunca infere dependência sozinho, nunca dá push, nunca cria PR.
+- **commeta** — cria commits Git padronizados (`[NOME-COMMIT] - [TIPO]: Descrição`) dentro da worktree, sempre que uma feature/fix/refactor é concluída. Nunca dá push.
+- **concilia** — especialista em resolver conflitos reais de merge/rebase (ex: a branch da qual você depende avançou enquanto você trabalhava). Diferencia conflito de texto (resolve) de dependência real de código (aborta e reporta, em vez de forçar uma resolução).
+- **publica** — acionado manualmente no **fim** de uma tarefa. Mostra o plano (branch, alvo do PR, título) e, após sua confirmação, faz push, cria o PR como draft via `gh` CLI, remove a worktree local e atualiza a referência remota na pasta principal.
 
-### Fluxo de trabalho (commeta → ramifica → concilia → publica)
+### Fluxo de trabalho (ramifica → commeta → concilia → publica)
 
-1. Você cria uma branch pessoal de trabalho a partir da develop e implementa várias features/fixes ao longo do dia.
-2. O **commeta** vai commitando cada mudança concluída no padrão `[NOME-COMMIT] - [TIPO]: Descrição`.
-3. No fim do dia, você chama o **ramifica** explicitamente. Ele separa os commits em uma branch por escopo, a partir da develop.
-4. Se algum cherry-pick conflitar, o ramifica delega ao **concilia**, que resolve conflitos de texto ou identifica dependências reais entre features (branches empilhadas).
-5. Quando quiser publicar, você chama o **publica** explicitamente. Ele mostra o plano (branches, alvo de cada PR, título) e, após sua confirmação, faz push e cria os PRs como draft no GitHub.
+Cada tarefa vive na sua própria worktree, isolada desde o início — não existe mais uma branch única do dia misturando várias features (e, com isso, não existe mais cherry-pick nem risco de reconciliar conflitos entre features depois do fato).
+
+1. No início de uma tarefa, você chama o **ramifica**, dizendo do que se trata e (se for o caso) de qual outra branch/tarefa em andamento ela depende. Ele cria a worktree + branch já isolada, a partir da base ou da branch dependente.
+2. Você trabalha nessa worktree. O **commeta** vai commitando cada mudança concluída no padrão `[NOME-COMMIT] - [TIPO]: Descrição`.
+3. Se a branch da qual você depende avançar enquanto trabalha e um merge/rebase conflitar, o **concilia** resolve conflitos de texto ou identifica uma incompatibilidade real (nesse caso, aborta e reporta para você decidir).
+4. Ao terminar, você chama o **publica**. Ele mostra o plano completo (branch, alvo do PR — base ou branch dependente —, título) e, após sua confirmação, faz push, cria o PR como draft, remove a worktree e dá `git fetch` na pasta principal — deixando a branch disponível pra checkout ali, sem mais estar presa a nenhuma pasta.
+5. Antes de mergear o PR, adicione uma label de versionamento (`major`/`breaking`, `minor`/`feature`, ou `patch`/`fix`). Ao mergear na `develop`, o CI de versionamento (ver abaixo) atualiza um draft de release com a próxima versão SemVer e a descrição do que foi implementado.
+
+## CI de versionamento (SemVer via labels de PR)
+
+Em `templates/release-drafter/` há um workflow portátil de CI que versiona o repositório em SemVer a partir da `develop`, usando labels do PR pra decidir o bump, e mantém um draft de release atualizado com o changelog. Veja `templates/release-drafter/README.md` para instruções de instalação em qualquer projeto.
