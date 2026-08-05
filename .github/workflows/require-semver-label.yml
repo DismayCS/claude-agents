@@ -1,15 +1,15 @@
 name: Require semver label
 
-# Bloqueia o merge de PRs contra a master que nao tenham nenhuma label de
+# Bloqueia o merge de PRs contra a develop que nao tenham nenhuma label de
 # versionamento. Para isso funcionar de verdade (impedir o merge, nao so
 # reportar), esse job precisa estar marcado como "required" nas branch
-# protection rules da branch master no GitHub.
+# protection rules da branch develop no GitHub.
 
 on:
   pull_request:
     types: [opened, reopened, labeled, unlabeled, synchronize]
     branches:
-      - master
+      - develop
 
 permissions:
   pull-requests: read
