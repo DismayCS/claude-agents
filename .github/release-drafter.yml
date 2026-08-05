@@ -1,0 +1,53 @@
+name-template: 'v$RESOLVED_VERSION'
+tag-template: 'v$RESOLVED_VERSION'
+
+categories:
+  - title: '💥 Breaking changes'
+    labels:
+      - 'major'
+      - 'breaking'
+  - title: '🚀 Features'
+    labels:
+      - 'minor'
+      - 'feature'
+  - title: '🐛 Fixes'
+    labels:
+      - 'patch'
+      - 'fix'
+  - title: '🧹 Outros'
+    labels:
+      - 'chore'
+      - 'docs'
+      - 'refactor'
+      - 'test'
+
+# O corpo de cada PR (preenchido pelo agente publica com a lista de commits
+# padronizados pelo commeta) entra direto na nota de release, junto do título.
+change-template: |
+  - **$TITLE** (#$NUMBER)
+
+  $BODY
+change-title-escapes: '\<*_&'
+
+version-resolver:
+  major:
+    labels:
+      - 'major'
+      - 'breaking'
+  minor:
+    labels:
+      - 'minor'
+      - 'feature'
+  patch:
+    labels:
+      - 'patch'
+      - 'fix'
+  default: patch
+
+exclude-labels:
+  - 'skip-changelog'
+
+template: |
+  ## O que foi implementado
+
+  $CHANGES
