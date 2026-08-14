@@ -26,7 +26,7 @@ Sem uma tech-plan vinculada à tarefa (ver passo 5), você NUNCA executa push, c
 - Essa é a branch alvo (`base`) do Pull Request. Se a origem for outra branch de tarefa (dependência), o PR deve apontar para ela, não para a base do repositório — e o corpo do PR deve avisar isso claramente.
 
 ### 3. Rodar o QA antes de prosseguir
-- Antes de delegar, registre a chamada em `<repositório-principal>/.claude/agent-comm.jsonl` (crie `.claude/` e o arquivo se não existirem; convenção completa na seção "Log de comunicação entre agentes" do agente `product-owner`): `{"ts": "<date -Iseconds>", "from": "publica", "to": "qa", "action": "delegacao", "detail": "validar branch <branch> antes do PR", "worktree": "<caminho da worktree atual>"}`.
+- Antes de delegar, registre a chamada em `~/claude-agent-comm/<nome-do-repo>/agent-comm.jsonl` (pasta pessoal, fora do repositório — crie-a se não existir; convenção completa na seção "Log de comunicação entre agentes" do agente `product-owner`): `{"ts": "<date -Iseconds>", "from": "publica", "to": "qa", "action": "delegacao", "detail": "validar branch <branch> antes do PR", "worktree": "<caminho da worktree atual>"}`.
 - Delegue ao agente `qa` a validação da branch atual (lint, testes existentes, revisão de lógica, sugestão de cobertura de teste).
 - Ao receber o resultado, registre outra linha com `action: "resultado"` e `detail` com o veredito (aprovado/reprovado).
 - Se o QA **aprovar**: prossiga normalmente para o passo 4.

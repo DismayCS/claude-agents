@@ -48,9 +48,9 @@ O script cria um link entre `~/.claude/agents` e a pasta `agents/` deste repo (n
 
 O `ramifica` grava, na raiz de cada worktree que cria, um arquivo `.claude-task.json` (nunca commitado) com `nome_commit`, `branch`, `origem`, `depende_de` (e o SHA da dependência no momento da criação) e `tech_plan`. É esse arquivo que permite ao `publica` saber automaticamente se deve rodar no fluxo manual ou automático, e avisar outras worktrees quando a dependência delas for publicada.
 
-### Log de comunicação entre agentes (`.claude/agent-comm.jsonl`)
+### Log de comunicação entre agentes (`~/claude-agent-comm/<repo>/agent-comm.jsonl`)
 
-Sempre que um agente delega para outro (`ramifica`→`product-owner`, `publica`→`qa`, `publica`→`product-owner`, `publica`→`daily`) ou dispara uma notificação de dependência, quem chama registra uma linha JSON em `.claude/agent-comm.jsonl`, na raiz do repositório principal (nunca commitado). Cada linha tem `ts`, `from`, `to`, `action` (`consulta`/`delegacao`/`resultado`/`notificacao`), `detail` e `worktree`. É esse arquivo que alimenta o histórico real de comunicação entre agentes (quem chamou quem, quando, e por quê) — a convenção completa está descrita no agente `product-owner`.
+É observabilidade de execução, não parâmetro de projeto — por isso vive numa pasta pessoal fora do repositório, no mesmo espírito do `daily` (`~/claude-dailies/<repo>/...`), em vez de dentro de `.claude/` do projeto. Sempre que um agente delega para outro (`ramifica`→`product-owner`, `publica`→`qa`, `publica`→`product-owner`, `publica`→`daily`) ou dispara uma notificação de dependência, quem chama registra uma linha JSON em `~/claude-agent-comm/<nome-do-repo>/agent-comm.jsonl`. Cada linha tem `ts`, `from`, `to`, `action` (`consulta`/`delegacao`/`resultado`/`notificacao`), `detail` e `worktree`. É esse arquivo que alimenta o histórico real de comunicação entre agentes (quem chamou quem, quando, e por quê) — a convenção completa está descrita no agente `product-owner`.
 
 ### Visualizador (`viewer/agents-viewer.html`)
 

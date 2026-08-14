@@ -70,13 +70,13 @@ Você mesmo **não** grava o log de comunicação entre agentes (seção abaixo)
 
 ## Log de comunicação entre agentes
 
-Todo agente que delega para outro registra uma linha em `<raiz-do-repositório-principal>/.claude/agent-comm.jsonl` — arquivo local, **nunca commitado** (mesmo princípio do `.claude-task.json`: se `.gitignore` do repositório não ignorar `.claude/agent-comm.jsonl`, adicione essa linha a ele). Descubra a raiz do repositório principal como o `daily` faz: `git worktree list --porcelain`, primeira entrada. Quem grava é sempre quem chama (antes de delegar, e de novo ao receber o resultado) — o agente chamado nunca precisa gravar por conta própria.
+Este log é observabilidade de execução dos agentes, não parâmetro do projeto — por isso vive **fora** do repositório, numa pasta pessoal, no mesmo espírito do `daily` (`~/claude-dailies/<repo>/...`): `~/claude-agent-comm/<nome-do-repo>/agent-comm.jsonl`. `<nome-do-repo>` é o basename da pasta do repositório principal — descubra-o como o `daily` faz: `git worktree list --porcelain`, primeira entrada. Todo agente que delega para outro registra uma linha ali. Quem grava é sempre quem chama (antes de delegar, e de novo ao receber o resultado) — o agente chamado nunca precisa gravar por conta própria.
 
 Formato — uma linha JSON por evento, sem quebrar em múltiplas linhas:
 ```json
 {"ts": "<ISO8601, via `date -Iseconds`>", "from": "<agente-que-chama>", "to": "<agente-chamado>", "action": "<consulta|atualizacao|resultado>", "detail": "<frase curta do motivo/resultado>", "worktree": "<caminho da worktree de onde partiu a chamada>"}
 ```
-Crie `.claude/` na raiz do repositório principal se ainda não existir. Se o arquivo `agent-comm.jsonl` não existir, crie-o com essa primeira linha; se existir, **acrescente** a linha ao final — nunca reescreva ou apague linhas anteriores.
+Crie `~/claude-agent-comm/<nome-do-repo>/` se ainda não existir. Se o arquivo `agent-comm.jsonl` não existir, crie-o com essa primeira linha; se existir, **acrescente** a linha ao final — nunca reescreva ou apague linhas anteriores.
 
 ## Regras absolutas
 
