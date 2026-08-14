@@ -1,0 +1,978 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<title>Agent Mesh — Painel de Agentes</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+  @import url('data:text/css;charset=utf-8,');
+  :root {
+    --bg: #f4f6fa;
+    --bg-grid: rgba(60,80,140,0.05);
+    --panel: rgba(255,255,255,0.85);
+    --panel-solid: #ffffff;
+    --border: #d7dbe4;
+    --border-soft: rgba(60,80,140,0.12);
+    --text: #131722;
+    --text-dim: #656d80;
+    --mono: #3a4258;
+    --cyan: #0891b2;
+    --violet: #7c3aed;
+    --cyan-glow: rgba(8,145,178,0.25);
+    --violet-glow: rgba(124,58,237,0.22);
+    --node-bg: #ffffff;
+    --node-border: #cfd4e0;
+    --workflow-line: #98a1b3;
+    --deleg-line: #0891b2;
+    --notify-line: #c2650f;
+    --ok: #17915a;
+    --fail: #d13b3b;
+    --tipo-feature: #0891b2;
+    --tipo-fix: #d13b3b;
+    --tipo-refactor: #7c3aed;
+    --tipo-docs: #7c8194;
+    --tipo-chore: #7c8194;
+    --tipo-test: #17915a;
+    --code-bg: #eef1f6;
+    --shadow: 0 8px 30px rgba(30,40,70,0.08);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #060a12;
+      --bg-grid: rgba(34,211,238,0.055);
+      --panel: rgba(15,20,32,0.72);
+      --panel-solid: #10141f;
+      --border: #232a3d;
+      --border-soft: rgba(34,211,238,0.14);
+      --text: #e7ebf5;
+      --text-dim: #838ea8;
+      --mono: #7fe3ff;
+      --cyan: #22d3ee;
+      --violet: #a78bfa;
+      --cyan-glow: rgba(34,211,238,0.35);
+      --violet-glow: rgba(167,139,250,0.28);
+      --node-bg: #10141f;
+      --node-border: #262e46;
+      --workflow-line: #454f6b;
+      --deleg-line: #22d3ee;
+      --notify-line: #f0a04b;
+      --ok: #3ddc91;
+      --fail: #ff6b6b;
+      --tipo-feature: #22d3ee;
+      --tipo-fix: #ff6b6b;
+      --tipo-refactor: #a78bfa;
+      --tipo-docs: #8993ac;
+      --tipo-chore: #8993ac;
+      --tipo-test: #3ddc91;
+      --code-bg: #171d2c;
+      --shadow: 0 8px 30px rgba(0,0,0,0.45);
+    }
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Segoe UI', Inter, -apple-system, Roboto, Arial, sans-serif;
+    overflow: hidden;
+    position: relative;
+  }
+  body::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+    background-image:
+      linear-gradient(var(--bg-grid) 1px, transparent 1px),
+      linear-gradient(90deg, var(--bg-grid) 1px, transparent 1px);
+    background-size: 34px 34px;
+    mask-image: radial-gradient(ellipse 90% 70% at 50% 0%, black 40%, transparent 100%);
+  }
+  body::after {
+    content: "";
+    position: fixed;
+    top: -20%; right: -10%;
+    width: 60vw; height: 60vw;
+    z-index: 0;
+    pointer-events: none;
+    background: radial-gradient(circle, var(--cyan-glow) 0%, transparent 60%);
+    opacity: 0.5;
+    filter: blur(10px);
+  }
+  header, main { position: relative; z-index: 1; }
+  header {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 12px 22px;
+    border-bottom: 1px solid var(--border-soft);
+    background: var(--panel);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+  }
+  .brand {
+    font-family: 'Consolas', 'JetBrains Mono', monospace;
+    font-size: 15px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    white-space: nowrap;
+    background: linear-gradient(90deg, var(--cyan), var(--violet));
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+  .brand .dim { color: var(--text-dim); font-weight: 500; -webkit-text-fill-color: var(--text-dim); }
+  nav.tabs {
+    display: flex;
+    background: var(--code-bg);
+    border: 1px solid var(--border-soft);
+    border-radius: 999px;
+    padding: 3px;
+    gap: 2px;
+  }
+  nav.tabs button {
+    border: none;
+    background: transparent;
+    color: var(--text-dim);
+    font-size: 12.5px;
+    font-weight: 600;
+    padding: 7px 16px;
+    border-radius: 999px;
+    cursor: pointer;
+    transition: all 0.18s;
+    white-space: nowrap;
+  }
+  nav.tabs button.active {
+    background: linear-gradient(90deg, var(--cyan), var(--violet));
+    color: #05070c;
+    box-shadow: 0 0 16px var(--cyan-glow);
+  }
+  .spacer { flex: 1; }
+  .actions { display: flex; align-items: center; gap: 10px; }
+  .actions[hidden] { display: none; }
+  button.pill, label.pill {
+    background: linear-gradient(135deg, var(--cyan), var(--violet));
+    color: #05070c;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 8px;
+    font-size: 12.5px;
+    font-weight: 700;
+    cursor: pointer;
+    box-shadow: 0 0 0 rgba(0,0,0,0);
+    transition: box-shadow 0.2s, transform 0.15s;
+  }
+  button.pill:hover, label.pill:hover { box-shadow: 0 0 18px var(--cyan-glow); transform: translateY(-1px); }
+  button.ghost {
+    background: transparent;
+    color: var(--text-dim);
+    border: 1px solid var(--border);
+    padding: 8px 14px;
+    border-radius: 8px;
+    font-size: 12.5px;
+    cursor: pointer;
+  }
+  button.ghost:hover { border-color: var(--cyan); color: var(--cyan); }
+  #log-status, #daily-status {
+    font-family: 'Consolas', monospace;
+    font-size: 11.5px;
+    color: var(--text-dim);
+    white-space: nowrap;
+  }
+  .dot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; margin-right: 5px; background: var(--text-dim); }
+  .dot.live { background: var(--ok); box-shadow: 0 0 6px var(--ok); animation: pulse 1.8s infinite; }
+  @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.4; } }
+  input[type=file] { display: none; }
+
+  main { height: calc(100vh - 55px); }
+  .view { display: none; height: 100%; }
+  .view.active { display: flex; }
+
+  /* ---- Tree view ---- */
+  #canvas-wrap { flex: 1; position: relative; overflow: hidden; cursor: grab; }
+  #canvas-wrap.panning { cursor: grabbing; }
+  svg { width: 100%; height: 100%; display: block; touch-action: none; }
+  @keyframes edge-flow { to { stroke-dashoffset: -24; } }
+  @keyframes node-pulse-ring {
+    0% { stroke-opacity: 0.55; stroke-width: 2.2; }
+    100% { stroke-opacity: 0; stroke-width: 14; }
+  }
+  @keyframes bg-drift {
+    0%, 100% { transform: translate(0, 0); }
+    50% { transform: translate(-2%, 2%); }
+  }
+  body::after { animation: bg-drift 18s ease-in-out infinite; }
+  .node-group { transition: filter 0.2s; }
+  .node-group:hover { filter: drop-shadow(0 0 14px var(--cyan-glow)); }
+  .node-group:hover .node-box { stroke: var(--cyan); }
+  .node-box {
+    fill: var(--node-bg);
+    stroke: var(--node-border);
+    stroke-width: 1.5;
+    rx: 12;
+    cursor: pointer;
+    transform-box: fill-box;
+    transform-origin: center;
+    transition: stroke 0.15s, filter 0.15s, transform 0.18s;
+  }
+  .node-group:hover .node-box { transform: scale(1.035); }
+  .node-box.virtual { stroke-dasharray: 4 3; fill: transparent; }
+  .node-box.selected { stroke: var(--cyan); stroke-width: 2.2; filter: drop-shadow(0 0 12px var(--cyan-glow)); }
+  .node-pulse-ring {
+    fill: none; stroke: var(--cyan); pointer-events: none;
+    animation: node-pulse-ring 1.6s ease-out infinite;
+  }
+  .node-label { fill: var(--text); font-size: 13.5px; font-weight: 700; text-anchor: middle; pointer-events: none; }
+  .node-sub { fill: var(--text-dim); font-size: 10px; text-anchor: middle; pointer-events: none; font-family: 'Consolas', monospace; }
+  .edge-hit { stroke: transparent; stroke-width: 14; fill: none; cursor: pointer; }
+  .edge-line { fill: none; pointer-events: none; }
+  .edge-line.workflow { stroke: var(--workflow-line); stroke-width: 1.6; }
+  .edge-line.workflow.optional { stroke-dasharray: 5 4; }
+  .edge-line.delegation {
+    stroke: var(--deleg-line); stroke-width: 2.2; filter: drop-shadow(0 0 3px var(--cyan-glow));
+    stroke-dasharray: 5 7; animation: edge-flow 1.1s linear infinite;
+  }
+  .edge-line.notify {
+    stroke: var(--notify-line); stroke-width: 2;
+    stroke-dasharray: 3 6; animation: edge-flow 1.6s linear infinite;
+  }
+  .edge-label { font-size: 10px; font-family: 'Consolas', monospace; fill: var(--text-dim); text-anchor: middle; pointer-events: none; }
+  .edge-label.delegation { fill: var(--deleg-line); font-weight: 700; }
+  .edge-label.notify { fill: var(--notify-line); font-weight: 700; }
+  .edge-particle { fill: var(--cyan); filter: drop-shadow(0 0 4px var(--cyan-glow)); }
+  #legend {
+    position: absolute; left: 16px; bottom: 16px;
+    background: var(--panel); backdrop-filter: blur(10px);
+    border: 1px solid var(--border-soft); border-radius: 10px;
+    padding: 12px 16px; font-size: 11px; color: var(--text-dim); line-height: 2;
+    box-shadow: var(--shadow);
+  }
+  #legend .swatch { display: inline-block; width: 18px; height: 0; border-top-width: 2.5px; border-top-style: solid; margin-right: 6px; vertical-align: middle; }
+  #zoom-hint, #reset-view {
+    position: absolute; right: 16px; bottom: 16px;
+    background: var(--panel); backdrop-filter: blur(10px);
+    border: 1px solid var(--border-soft); border-radius: 10px;
+    padding: 9px 14px; font-size: 11px; color: var(--text-dim);
+    box-shadow: var(--shadow); font-family: 'Consolas', monospace;
+  }
+  #reset-view { right: auto; left: 50%; transform: translateX(-50%); bottom: 16px; cursor: pointer; font-weight: 700; }
+  #reset-view:hover { color: var(--cyan); border-color: var(--cyan); }
+
+  #detail { width: 380px; border-left: 1px solid var(--border-soft); background: var(--panel); backdrop-filter: blur(14px); padding: 22px; overflow-y: auto; }
+  #detail h2 { margin: 0 0 6px; font-size: 19px; font-family: 'Consolas', monospace; }
+  #detail .gatilho {
+    display: inline-block; font-size: 10.5px; padding: 3px 10px; border-radius: 20px;
+    background: var(--code-bg); border: 1px solid var(--border-soft); color: var(--cyan);
+    font-weight: 700; margin-bottom: 14px; font-family: 'Consolas', monospace;
+  }
+  #detail p.desc { font-size: 13px; color: var(--text-dim); line-height: 1.6; }
+  #detail h3 { font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-dim); margin: 20px 0 9px; font-family: 'Consolas', monospace; }
+  #detail ul { margin: 0; padding-left: 18px; font-size: 13px; line-height: 1.65; }
+  #detail .tools code {
+    background: var(--code-bg); border: 1px solid var(--border-soft); color: var(--mono);
+    padding: 3px 8px; border-radius: 6px; font-size: 11px; margin: 2px 4px 2px 0; display: inline-block;
+    font-family: 'Consolas', monospace;
+  }
+  #detail .empty-state { color: var(--text-dim); font-size: 13px; text-align: center; margin-top: 60px; line-height: 1.7; }
+  .comm-item { border-left: 2px solid var(--border); padding: 7px 0 7px 12px; margin-bottom: 7px; font-size: 12px; }
+  .comm-item .action { font-weight: 700; text-transform: uppercase; font-size: 10px; letter-spacing: 0.04em; font-family: 'Consolas', monospace; }
+  .comm-item.consulta .action, .comm-item.delegacao .action { color: var(--deleg-line); border-color: var(--deleg-line); }
+  .comm-item.resultado .action { color: var(--ok); }
+  .comm-item.notificacao .action { color: var(--notify-line); }
+  .comm-item .ts { color: var(--text-dim); font-size: 10px; font-family: 'Consolas', monospace; }
+  .comm-item .detail-text { color: var(--text); margin-top: 3px; }
+  .no-comm { font-size: 12px; color: var(--text-dim); font-style: italic; }
+
+  /* ---- Daily view ---- */
+  #view-daily { flex-direction: column; overflow-y: auto; padding: 26px 32px 60px; gap: 20px; }
+  .stats-row { display: flex; gap: 14px; flex-wrap: wrap; }
+  .stat-card {
+    background: var(--panel); backdrop-filter: blur(10px); border: 1px solid var(--border-soft);
+    border-radius: 12px; padding: 14px 20px; min-width: 140px; box-shadow: var(--shadow);
+  }
+  .stat-card .num { font-family: 'Consolas', monospace; font-size: 24px; font-weight: 700;
+    background: linear-gradient(90deg, var(--cyan), var(--violet)); -webkit-background-clip: text; background-clip: text; color: transparent; }
+  .stat-card .lbl { font-size: 11px; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.06em; margin-top: 2px; }
+  .empty-daily { color: var(--text-dim); font-size: 13.5px; text-align: center; margin-top: 80px; line-height: 1.8; }
+  .empty-daily code { background: var(--code-bg); padding: 2px 8px; border-radius: 5px; }
+
+  .day-card { background: var(--panel); backdrop-filter: blur(10px); border: 1px solid var(--border-soft); border-radius: 14px; overflow: hidden; box-shadow: var(--shadow); }
+  .day-card-header {
+    display: flex; align-items: center; gap: 14px; padding: 16px 22px; cursor: pointer; user-select: none;
+  }
+  .day-card-header:hover { background: rgba(120,140,200,0.05); }
+  .day-date { font-family: 'Consolas', monospace; font-weight: 800; font-size: 16.5px; color: var(--text); letter-spacing: 0.03em; }
+  .day-count { font-size: 12px; color: var(--text-dim); }
+  .copy-day-btn {
+    margin-left: auto; background: var(--code-bg); color: var(--text-dim);
+    border: 1px solid var(--border-soft); padding: 6px 12px; border-radius: 7px;
+    font-size: 11.5px; font-family: 'Consolas', monospace; font-weight: 600; cursor: pointer;
+    transition: color 0.15s, border-color 0.15s;
+  }
+  .copy-day-btn:hover { color: var(--cyan); border-color: var(--cyan); }
+  .chevron { color: var(--text-dim); transition: transform 0.2s; font-size: 12px; }
+  .day-card.open .chevron { transform: rotate(180deg); }
+  .day-card-body { display: none; padding: 4px 22px 22px; border-top: 1px solid var(--border-soft); }
+  .day-card.open .day-card-body { display: block; }
+
+  .repo-section { padding-top: 18px; }
+  .repo-section:first-child { padding-top: 16px; }
+  .repo-section + .repo-section { border-top: 1px dashed var(--border-soft); margin-top: 4px; }
+  .repo-title {
+    display: flex; align-items: baseline; gap: 10px;
+    font-family: 'Consolas', monospace; font-weight: 700; font-size: 12.5px;
+    color: var(--cyan); text-transform: uppercase; letter-spacing: 0.06em;
+    margin-bottom: 6px;
+  }
+  .repo-count { font-size: 11px; color: var(--text-dim); text-transform: none; letter-spacing: normal; font-weight: 500; }
+
+  .feature-item { padding: 12px 0 12px 4px; border-bottom: 1px solid var(--border-soft); }
+  .feature-item:last-child { border-bottom: none; }
+  .feature-title {
+    font-family: 'Consolas', monospace; font-weight: 700; font-size: 13.5px;
+    border-left: 3px solid var(--tipo-feature); padding-left: 12px; margin-bottom: 8px;
+  }
+  .commit-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 5px; }
+  .commit-list li { font-size: 13px; padding-left: 12px; display: flex; gap: 8px; align-items: baseline; }
+  .tipo-badge {
+    font-family: 'Consolas', monospace; font-size: 9.5px; font-weight: 700; padding: 2px 7px; border-radius: 5px;
+    letter-spacing: 0.03em; white-space: nowrap; flex-shrink: 0;
+  }
+  .tipo-badge.feature { color: var(--tipo-feature); background: color-mix(in srgb, var(--tipo-feature) 15%, transparent); border: 1px solid var(--tipo-feature); }
+  .tipo-badge.fix { color: var(--tipo-fix); background: color-mix(in srgb, var(--tipo-fix) 15%, transparent); border: 1px solid var(--tipo-fix); }
+  .tipo-badge.refactor { color: var(--tipo-refactor); background: color-mix(in srgb, var(--tipo-refactor) 15%, transparent); border: 1px solid var(--tipo-refactor); }
+  .tipo-badge.docs, .tipo-badge.chore { color: var(--tipo-docs); background: color-mix(in srgb, var(--tipo-docs) 15%, transparent); border: 1px solid var(--tipo-docs); }
+  .tipo-badge.test { color: var(--tipo-test); background: color-mix(in srgb, var(--tipo-test) 15%, transparent); border: 1px solid var(--tipo-test); }
+  .day-total { padding: 10px 22px; font-size: 11.5px; color: var(--text-dim); font-family: 'Consolas', monospace; border-top: 1px solid var(--border-soft); }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="brand">AGENT<span class="dim">·</span>MESH</div>
+  <nav class="tabs">
+    <button class="tab active" data-tab="tree">Mapa de Comunicação</button>
+    <button class="tab" data-tab="daily">Atividade Diária</button>
+  </nav>
+  <div class="spacer"></div>
+  <div class="actions" id="tree-actions">
+    <span id="log-status"><span class="dot"></span>nenhum log carregado</span>
+    <label class="pill" for="log-input">Carregar agent-comm.jsonl</label>
+    <input type="file" id="log-input" accept=".jsonl,.log,.txt">
+    <button class="ghost" id="clear-log">Limpar</button>
+  </div>
+  <div class="actions" id="daily-actions" hidden>
+    <span id="daily-status"><span class="dot"></span>nenhum relatório carregado</span>
+    <button class="pill" id="daily-connect" hidden>Conectar pasta de dailies</button>
+    <button class="ghost" id="daily-refresh" hidden>↻ Atualizar</button>
+    <label class="pill" for="daily-input" id="daily-fallback-label">Carregar relatórios (.md)</label>
+    <input type="file" id="daily-input" accept=".md" multiple>
+    <button class="ghost" id="clear-daily">Limpar</button>
+  </div>
+</header>
+
+<main>
+  <section id="view-tree" class="view active">
+    <div id="canvas-wrap">
+      <svg viewBox="0 0 900 620" id="tree">
+        <defs>
+          <marker id="arrow-wf" markerWidth="8" markerHeight="8" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z" fill="var(--workflow-line)"></path></marker>
+          <marker id="arrow-deleg" markerWidth="8" markerHeight="8" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z" fill="var(--deleg-line)"></path></marker>
+          <marker id="arrow-notify" markerWidth="8" markerHeight="8" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z" fill="var(--notify-line)"></path></marker>
+        </defs>
+        <g id="edges-layer"></g>
+        <g id="nodes-layer"></g>
+      </svg>
+      <div id="legend">
+        <div><span class="swatch" style="border-color: var(--workflow-line)"></span>fluxo de trabalho (ordem de uso)</div>
+        <div><span class="swatch" style="border-color: var(--workflow-line); border-top-style: dashed;"></span>uso opcional / sob demanda</div>
+        <div><span class="swatch" style="border-color: var(--deleg-line)"></span>delegação real (Task tool, logada)</div>
+        <div><span class="swatch" style="border-color: var(--notify-line); border-top-style: dashed;"></span>notificação cross-worktree</div>
+      </div>
+      <div id="zoom-hint">botão direito: arrastar · scroll: zoom</div>
+      <button id="reset-view">⤾ Resetar vista</button>
+    </div>
+    <div id="detail">
+      <div class="empty-state">Clique num agente pra ver o que ele faz.<br><br>Carregue um <code>agent-comm.jsonl</code> (fica em <code>~/claude-agent-comm/&lt;repo&gt;/</code>) pra ver as chamadas reais registradas por ele.</div>
+    </div>
+  </section>
+
+  <section id="view-daily" class="view">
+    <div class="stats-row" id="daily-stats" hidden>
+      <div class="stat-card"><div class="num" id="stat-days">0</div><div class="lbl">dias</div></div>
+      <div class="stat-card"><div class="num" id="stat-tasks">0</div><div class="lbl">features / tarefas</div></div>
+      <div class="stat-card"><div class="num" id="stat-commits">0</div><div class="lbl">commits</div></div>
+    </div>
+    <div id="daily-list"></div>
+    <div class="empty-daily" id="daily-empty">
+      Conecte a pasta <code>~/claude-dailies</code> (ou carregue os .md manualmente) pra ver aqui os títulos de feature/PR do dia e os commits abaixo de cada um.<br><br>
+      Depois de conectada, a pasta é relida sozinha a cada 30s e sempre que você volta pra esta aba — o agente <code>daily</code> só precisa continuar sobrescrevendo o .md do dia normalmente.
+    </div>
+  </section>
+</main>
+
+<script>
+/* ===================== TREE VIEW ===================== */
+const AGENTS = {
+  ramifica: {
+    label: "ramifica", x: 450, y: 55, w: 130, h: 46,
+    gatilho: "Manual — início da tarefa",
+    desc: "Abre uma worktree + branch isolada no início de uma tarefa (feature/fix/refactor). Nunca escreve código, nunca dá push, nunca cria PR.",
+    tools: ["Read","Grep","Glob","Bash","Write","Task"],
+    model: "sonnet",
+    atividades: [
+      "Deriva o nome oficial do escopo (convenção do commeta) e o nome técnico da branch",
+      "Consulta o product-owner (modo consulta) se .github/PRODUCT.md existir — checa se a feature já existe",
+      "Determina a branch de origem (base ou dependência informada explicitamente)",
+      "Cria a worktree sempre em <repo>-worktrees/<branch> — padrão único, sem exceção",
+      "Vincula tech-plan opcional (colada ou por nome, com confirmação)",
+      "Grava .claude-task.json com toda a metadata da tarefa"
+    ]
+  },
+  commeta: {
+    label: "commeta", x: 190, y: 155, w: 130, h: 46,
+    gatilho: "Proativo — a cada entrega concluída",
+    desc: "Cria commits Git padronizados dentro da worktree, sempre que uma feature/fix/refactor é concluída. Nunca dá push.",
+    tools: ["Read","Grep","Glob","Edit","Write","Bash"],
+    model: null,
+    atividades: [
+      "Detecta o NOME-COMMIT da tarefa atual (via .claude-task.json ou convenção do ramifica)",
+      "Classifica o TIPO da mudança (FEATURE/FIX/REFACTOR/DOCS/CHORE/TEST)",
+      "Cria o commit no formato [NOME-COMMIT] - [TIPO]: Descrição",
+      "Nunca dá push, nunca mexe em código não relacionado ao commit"
+    ]
+  },
+  concilia: {
+    label: "concilia", x: 190, y: 275, w: 130, h: 46,
+    gatilho: "Sob demanda — conflito real de merge/rebase",
+    desc: "Especialista em resolver conflitos reais de merge/rebase entre branches dependentes — nunca inventa uma resolução que quebre a lógica silenciosamente.",
+    tools: ["Read","Grep","Glob","Edit","Bash"],
+    model: null,
+    atividades: [
+      "Diferencia conflito de texto (resolve) de dependência real de código (aborta e reporta)",
+      "Nunca força uma resolução que pareça funcionar mas quebre comportamento",
+      "Reporta ao usuário quando a decisão exige contexto de negócio"
+    ]
+  },
+  qa: {
+    label: "qa", x: 450, y: 375, w: 130, h: 46,
+    gatilho: "Sob demanda + gate automático do publica",
+    desc: "Valida a qualidade do código de uma branch antes dela ser publicada: lint, testes existentes, revisão de lógica, sugestão de cobertura. Nunca corrige bug silenciosamente.",
+    tools: ["Read","Grep","Glob","Bash","Edit","Write"],
+    model: null,
+    atividades: [
+      "Roda lint (autofix só de formatação/estilo, nunca de comportamento)",
+      "Roda os testes automatizados existentes relacionados ao diff",
+      "Revisa a lógica em busca de bugs reais (cenário concreto, não suspeita vaga)",
+      "Sugere testes (rascunho separado) para lógica sem cobertura — nunca edita testes existentes",
+      "Reporta veredito final: aprovado ou reprovado (sem override)"
+    ]
+  },
+  publica: {
+    label: "publica", x: 450, y: 485, w: 130, h: 46,
+    gatilho: "Manual, ou automático com tech-plan vinculada",
+    desc: "Fecha uma tarefa: roda o qa como gate, publica a branch, cria PR draft estruturado, remove a worktree e atualiza a referência remota.",
+    tools: ["Read","Grep","Glob","Bash","Write","Task","PushNotification"],
+    model: "sonnet",
+    atividades: [
+      "Delega ao qa a validação da branch (gate sem override)",
+      "Monta o PR: título, corpo em 5 seções, label de versionamento automática",
+      "Push + cria (ou atualiza) o PR sempre em draft — nunca marca ready for review, isso é sempre manual do usuário",
+      "Remove a worktree sempre ao final — inclusive se achar o PR já merged (limpeza)",
+      "Notifica (PushNotification) worktrees dependentes da branch publicada",
+      "Delega ao product-owner (modo incremental) o registro do que foi entregue"
+    ]
+  },
+  daily: {
+    label: "daily", x: 60, y: 375, w: 130, h: 46,
+    gatilho: "Manual, ou automático após cada PR (publica)",
+    desc: "Gera um relatório do que foi feito hoje, agregando os commits do commeta (por autor) em todas as worktrees do repositório atual.",
+    tools: ["Read","Glob","Bash","Write"],
+    model: "sonnet",
+    atividades: [
+      "Lista todas as worktrees do repositório (git worktree list)",
+      "Coleta commits de hoje do autor atual em cada uma",
+      "Agrupa por NOME-COMMIT e TIPO, preservando ordem cronológica",
+      "Salva o relatório fora do projeto (~/claude-dailies/<repo>/<data>.md) — é essa a fonte da aba Atividade Diária",
+      "Acionado pelo publica logo após cada PR — se não houver commit hoje, apenas não gera nada (não é erro)"
+    ]
+  },
+  "product-owner": {
+    label: "product-owner", x: 750, y: 275, w: 150, h: 46,
+    gatilho: "Automático só na 1ª vez — depois, só chamado por outro agente",
+    desc: "Mantém um mapa vivo do projeto (.github/PRODUCT.md): módulos, features existentes, integração com repositórios irmãos e convenções.",
+    tools: ["Read","Grep","Glob","Bash","Write","Edit"],
+    model: "sonnet",
+    atividades: [
+      "Modo análise completa: só na 1ª ativação (arquivo ainda não existe)",
+      "Modo consulta (chamado pelo ramifica): read-only, checa se a feature já existe",
+      "Modo atualização incremental (chamado pelo publica): registra só o que mudou, sem reprocessar tudo",
+      "Documenta integração com repositórios irmãos (leitura superficial, sem análise profunda neles)",
+      "Nunca commita, nunca dá push, nunca escreve em repositório irmão"
+    ]
+  },
+  "outras-worktrees": {
+    label: "outras worktrees\n(dependentes)", x: 750, y: 485, w: 150, h: 46, virtual: true,
+    gatilho: "—",
+    desc: "Não é um agente — representa qualquer outra worktree/tarefa cujo .claude-task.json aponte depende_de para a branch que acabou de ser publicada. O publica avisa essas tarefas via PushNotification.",
+    tools: [], model: null, atividades: []
+  }
+};
+
+const WORKFLOW_EDGES = [
+  { from: "ramifica", to: "commeta", optional: false },
+  { from: "commeta", to: "concilia", optional: true, label: "se conflito" },
+  { from: "commeta", to: "daily", optional: true, label: "sob pedido" },
+  { from: "commeta", to: "qa", optional: true, label: "sob pedido" },
+  { from: "concilia", to: "qa", optional: true },
+  { from: "qa", to: "publica", optional: false }
+];
+const DELEGATION_EDGES = [
+  { from: "ramifica", to: "product-owner", action: "consulta", label: "consulta" },
+  { from: "publica", to: "qa", action: "delegacao", label: "delegação (gate)" },
+  { from: "publica", to: "product-owner", action: "delegacao", label: "atualização" },
+  { from: "publica", to: "daily", action: "delegacao", label: "atualiza snapshot" }
+];
+const NOTIFY_EDGES = [ { from: "publica", to: "outras-worktrees", label: "notificação" } ];
+
+let commLog = [];
+let selectedNode = null;
+
+function el(tag, attrs, parent) {
+  const e = document.createElementNS("http://www.w3.org/2000/svg", tag);
+  for (const k in attrs) e.setAttribute(k, attrs[k]);
+  if (parent) parent.appendChild(e);
+  return e;
+}
+function nodeEdgePoint(node, towardX, towardY) {
+  const cx = node.x, cy = node.y, dx = towardX - cx, dy = towardY - cy;
+  const angle = Math.atan2(dy, dx), hw = node.w / 2, hh = node.h / 2;
+  let t;
+  if (Math.abs(Math.cos(angle)) * hh > Math.abs(Math.sin(angle)) * hw) t = hw / Math.abs(Math.cos(angle));
+  else t = hh / Math.abs(Math.sin(angle));
+  return [cx + Math.cos(angle) * t, cy + Math.sin(angle) * t];
+}
+let edgeIdCounter = 0;
+function drawEdge(layer, a, b, cls, marker, label, curve) {
+  const [x1, y1] = nodeEdgePoint(a, b.x, b.y);
+  const [x2, y2] = nodeEdgePoint(b, a.x, a.y);
+  const mx = (x1 + x2) / 2 + (curve || 0), my = (y1 + y2) / 2;
+  const d = `M${x1},${y1} Q${mx},${my} ${x2},${y2}`;
+  const pathId = "edge-path-" + (edgeIdCounter++);
+  el("path", { d, class: "edge-hit" }, layer);
+  el("path", { d, id: pathId, class: "edge-line " + cls, "marker-end": marker ? `url(#${marker})` : "" }, layer);
+  if (label) el("text", { x: mx, y: my - 6, class: "edge-label " + (cls.includes("delegation") ? "delegation" : cls.includes("notify") ? "notify" : "") }, layer).textContent = label;
+  if (cls.includes("delegation") || cls.includes("notify")) {
+    const particle = el("circle", { r: 3, class: "edge-particle" }, layer);
+    const motion = el("animateMotion", { dur: cls.includes("notify") ? "2.6s" : "1.8s", repeatCount: "indefinite", rotate: "auto" }, particle);
+    const mpath = el("mpath", {}, motion);
+    mpath.setAttributeNS("http://www.w3.org/1999/xlink", "href", "#" + pathId);
+    mpath.setAttribute("href", "#" + pathId);
+  }
+}
+function renderTree() {
+  const edgesLayer = document.getElementById("edges-layer");
+  const nodesLayer = document.getElementById("nodes-layer");
+  edgesLayer.innerHTML = ""; nodesLayer.innerHTML = "";
+  WORKFLOW_EDGES.forEach(e => drawEdge(edgesLayer, AGENTS[e.from], AGENTS[e.to], "workflow" + (e.optional ? " optional" : ""), "arrow-wf", e.label, e.optional ? 30 : 0));
+  DELEGATION_EDGES.forEach(e => {
+    const count = commLog.filter(c => c.from === e.from && c.to === e.to).length;
+    drawEdge(edgesLayer, AGENTS[e.from], AGENTS[e.to], "delegation", "arrow-deleg", count > 0 ? `${e.label} (${count}x)` : e.label, -40);
+  });
+  NOTIFY_EDGES.forEach(e => {
+    const count = commLog.filter(c => c.from === e.from && c.action === "notificacao").length;
+    drawEdge(edgesLayer, AGENTS[e.from], AGENTS[e.to], "notify", "arrow-notify", count > 0 ? `${e.label} (${count}x)` : e.label, 0);
+  });
+  Object.keys(AGENTS).forEach(key => {
+    const n = AGENTS[key];
+    const g = el("g", { class: "node-group" }, nodesLayer);
+    g.style.cursor = "pointer";
+    if (selectedNode === key && !n.virtual) {
+      el("rect", { x: n.x - n.w/2 - 5, y: n.y - n.h/2 - 5, width: n.w + 10, height: n.h + 10, rx: 15, class: "node-pulse-ring" }, g);
+    }
+    el("rect", { x: n.x - n.w/2, y: n.y - n.h/2, width: n.w, height: n.h, class: "node-box" + (n.virtual ? " virtual" : "") + (selectedNode === key ? " selected" : ""), "data-key": key }, g);
+    const lines = n.label.split("\n");
+    lines.forEach((line, i) => { el("text", { x: n.x, y: n.y - (lines.length-1)*7 + i*15 + 5, class: "node-label" }, g).textContent = line; });
+    g.addEventListener("click", () => selectNode(key));
+  });
+}
+function selectNode(key) { selectedNode = key; renderTree(); showDetail(key); }
+function showDetail(key) {
+  const n = AGENTS[key];
+  const panel = document.getElementById("detail");
+  if (n.virtual) { panel.innerHTML = `<h2>${n.label.replace("\n"," ")}</h2><p class="desc">${n.desc}</p>`; return; }
+  let html = `<h2>${n.label}</h2><div class="gatilho">${n.gatilho}</div><p class="desc">${n.desc}</p>`;
+  html += `<h3>Atividades</h3><ul>` + n.atividades.map(a => `<li>${a}</li>`).join("") + `</ul>`;
+  html += `<h3>Tools</h3><div class="tools">` + (n.tools.length ? n.tools.map(t => `<code>${t}</code>`).join("") : "<em>nenhuma</em>") + `</div>`;
+  if (n.model) html += `<h3>Model</h3><div class="tools"><code>${n.model}</code></div>`;
+  const related = commLog.filter(c => c.from === key || c.to === key).sort((a,b) => (b.ts||"").localeCompare(a.ts||""));
+  html += `<h3>Comunicações registradas (${related.length})</h3>`;
+  html += !related.length
+    ? `<div class="no-comm">Nenhuma chamada registrada ainda para este agente. Carregue um agent-comm.jsonl pra ver o histórico real.</div>`
+    : related.slice(0,40).map(c => `<div class="comm-item ${c.action||''}"><span class="action">${c.action||'?'}</span> · <span class="ts">${c.ts||''}</span><div class="detail-text">${c.from} → ${c.to}${c.detail?' — '+c.detail:''}</div></div>`).join("");
+  panel.innerHTML = html;
+}
+document.getElementById("log-input").addEventListener("change", function(ev){
+  const file = ev.target.files[0]; if (!file) return;
+  const reader = new FileReader();
+  reader.onload = function(e){
+    const lines = e.target.result.split(/\r?\n/).filter(l => l.trim().length);
+    const parsed = []; let errors = 0;
+    lines.forEach(line => { try { parsed.push(JSON.parse(line)); } catch(err){ errors++; } });
+    commLog = parsed;
+    document.getElementById("log-status").innerHTML = `<span class="dot live"></span>${file.name}: ${parsed.length} evento(s)` + (errors ? ` · ${errors} inválida(s)` : "");
+    renderTree(); if (selectedNode) showDetail(selectedNode);
+  };
+  reader.readAsText(file);
+});
+document.getElementById("clear-log").addEventListener("click", function(){
+  commLog = []; document.getElementById("log-input").value = "";
+  document.getElementById("log-status").innerHTML = `<span class="dot"></span>nenhum log carregado`;
+  renderTree(); if (selectedNode) showDetail(selectedNode);
+});
+renderTree();
+
+/* ---- Pan (botão direito) + zoom (scroll) no canvas ---- */
+const treeSvg = document.getElementById("tree");
+const canvasWrap = document.getElementById("canvas-wrap");
+const DEFAULT_VB = { x: 0, y: 0, w: 900, h: 620 };
+let viewBox = { ...DEFAULT_VB };
+
+function applyViewBox() {
+  treeSvg.setAttribute("viewBox", `${viewBox.x} ${viewBox.y} ${viewBox.w} ${viewBox.h}`);
+}
+function clientToSvgScale() {
+  const rect = treeSvg.getBoundingClientRect();
+  return { sx: viewBox.w / rect.width, sy: viewBox.h / rect.height, rect };
+}
+
+canvasWrap.addEventListener("contextmenu", e => e.preventDefault());
+
+let panning = false, panStart = null, viewBoxStart = null;
+canvasWrap.addEventListener("mousedown", e => {
+  if (e.button !== 2) return;
+  e.preventDefault();
+  panning = true;
+  panStart = { x: e.clientX, y: e.clientY };
+  viewBoxStart = { ...viewBox };
+  canvasWrap.classList.add("panning");
+});
+window.addEventListener("mousemove", e => {
+  if (!panning) return;
+  const { sx, sy } = clientToSvgScale();
+  viewBox.x = viewBoxStart.x - (e.clientX - panStart.x) * sx;
+  viewBox.y = viewBoxStart.y - (e.clientY - panStart.y) * sy;
+  applyViewBox();
+});
+window.addEventListener("mouseup", () => {
+  if (!panning) return;
+  panning = false;
+  canvasWrap.classList.remove("panning");
+});
+
+canvasWrap.addEventListener("wheel", e => {
+  e.preventDefault();
+  const { sx, sy, rect } = clientToSvgScale();
+  const mx = viewBox.x + (e.clientX - rect.left) * sx;
+  const my = viewBox.y + (e.clientY - rect.top) * sy;
+  const factor = e.deltaY > 0 ? 1.1 : 0.9;
+  const newW = Math.min(Math.max(viewBox.w * factor, 220), 3600);
+  const newH = Math.min(Math.max(viewBox.h * factor, 150), 2480);
+  viewBox.x = mx - (mx - viewBox.x) * (newW / viewBox.w);
+  viewBox.y = my - (my - viewBox.y) * (newH / viewBox.h);
+  viewBox.w = newW; viewBox.h = newH;
+  applyViewBox();
+}, { passive: false });
+
+document.getElementById("reset-view").addEventListener("click", () => {
+  viewBox = { ...DEFAULT_VB };
+  applyViewBox();
+});
+
+/* ===================== DAILY VIEW ===================== */
+const TIPO_PRIORITY = ["FEATURE","FIX","REFACTOR","DOCS","CHORE","TEST"];
+let dailyDays = []; // { date, repo, tasks: [{nome, commits: [{tipo, desc}]}] }
+
+function parseDailyMarkdown(text) {
+  const headerMatch = text.match(/^#\s*Daily\s*-\s*([\d-]+)\s*\(([^)]+)\)/mi);
+  if (!headerMatch) return null;
+  const date = headerMatch[1];
+  const repo = headerMatch[2];
+  const tasks = [];
+  const blocks = text.split(/^##\s+/m).slice(1);
+  blocks.forEach(block => {
+    const lines = block.split(/\r?\n/);
+    const nome = lines[0].trim();
+    if (nome === "" || nome.startsWith("-")) return;
+    const commits = [];
+    lines.slice(1).forEach(line => {
+      const m = line.match(/^-\s*\[([A-Z]+)\]:\s*(.+)$/);
+      if (m) commits.push({ tipo: m[1], desc: m[2].trim() });
+    });
+    if (commits.length) tasks.push({ nome, commits });
+  });
+  return { date, repo, tasks };
+}
+function dominantTipo(commits) {
+  for (const t of TIPO_PRIORITY) if (commits.some(c => c.tipo === t)) return t;
+  return commits[0] ? commits[0].tipo : "CHORE";
+}
+function renderDaily() {
+  const list = document.getElementById("daily-list");
+  const empty = document.getElementById("daily-empty");
+  const stats = document.getElementById("daily-stats");
+  if (!dailyDays.length) { list.innerHTML = ""; empty.hidden = false; stats.hidden = true; return; }
+  empty.hidden = true; stats.hidden = false;
+
+  // Nível 1 (master): dia. Nível 2 (subtítulo): repositório. Nível 3: tarefa/PR. Nível 4: commits.
+  const byDate = {};
+  dailyDays.forEach(d => { (byDate[d.date] = byDate[d.date] || []).push(d); });
+  const dates = Object.keys(byDate).sort((a, b) => b.localeCompare(a));
+
+  let totalTasks = 0, totalCommits = 0;
+  dailyDays.forEach(d => { totalTasks += d.tasks.length; d.tasks.forEach(t => totalCommits += t.commits.length); });
+  document.getElementById("stat-days").textContent = dates.length;
+  document.getElementById("stat-tasks").textContent = totalTasks;
+  document.getElementById("stat-commits").textContent = totalCommits;
+
+  list.innerHTML = dates.map((date, idx) => {
+    const repos = byDate[date];
+    const dayCommitCount = repos.reduce((s, r) => s + r.tasks.reduce((s2, t) => s2 + t.commits.length, 0), 0);
+    const dayTaskCount = repos.reduce((s, r) => s + r.tasks.length, 0);
+
+    const repoSectionsHtml = repos.map(r => {
+      const repoCommitCount = r.tasks.reduce((s, t) => s + t.commits.length, 0);
+      const featuresHtml = r.tasks.map(t => {
+        const tipo = dominantTipo(t.commits);
+        const tipoClass = tipo.toLowerCase();
+        const commitsHtml = t.commits.map(c => `<li><span class="tipo-badge ${c.tipo.toLowerCase()}">${c.tipo}</span><span>${escapeHtml(c.desc)}</span></li>`).join("");
+        return `<div class="feature-item">
+          <div class="feature-title" style="border-left-color: var(--tipo-${tipoClass}, var(--tipo-feature))">[${tipo}] ${escapeHtml(t.nome)}</div>
+          <ul class="commit-list">${commitsHtml}</ul>
+        </div>`;
+      }).join("");
+      return `<div class="repo-section">
+        <div class="repo-title">${escapeHtml(r.repo)} <span class="repo-count">${repoCommitCount} commit(s) · ${r.tasks.length} tarefa(s)</span></div>
+        ${featuresHtml}
+      </div>`;
+    }).join("");
+
+    return `<div class="day-card${idx === 0 ? ' open' : ''}">
+      <div class="day-card-header" onclick="this.parentElement.classList.toggle('open')">
+        <span class="day-date">${formatDate(date)}</span>
+        <span class="day-count">${dayCommitCount} commit(s) · ${dayTaskCount} tarefa(s) · ${repos.length} repositório(s)</span>
+        <button class="copy-day-btn" onclick="event.stopPropagation(); copyDayText('${date}', this)">📋 Copiar</button>
+        <span class="chevron">▾</span>
+      </div>
+      <div class="day-card-body">${repoSectionsHtml}</div>
+    </div>`;
+  }).join("");
+}
+function escapeHtml(s) { return s.replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
+function formatDate(iso) {
+  const [y,m,d] = iso.split("-");
+  const meses = ["JAN","FEV","MAR","ABR","MAI","JUN","JUL","AGO","SET","OUT","NOV","DEZ"];
+  return `${d} ${meses[parseInt(m,10)-1]} ${y}`;
+}
+
+function buildDayExportText(date) {
+  const repos = dailyDays.filter(d => d.date === date);
+  const lines = [];
+  lines.push(":white_check_mark: Hoje:");
+  repos.forEach(r => {
+    lines.push(`- \`${r.repo}\``);
+    r.tasks.forEach(t => {
+      const tipo = dominantTipo(t.commits);
+      lines.push(`> ** [${tipo}] ${t.nome} **`);
+      t.commits.forEach(c => lines.push(`> - [${c.tipo}] ${c.desc}`));
+    });
+  });
+  lines.push(":hammer: Amanhã:");
+  lines.push(":construction: Blocker:");
+  return lines.join("\n");
+}
+function fallbackCopy(text) {
+  const ta = document.createElement("textarea");
+  ta.value = text;
+  ta.style.position = "fixed";
+  ta.style.opacity = "0";
+  document.body.appendChild(ta);
+  ta.select();
+  try { document.execCommand("copy"); } catch (e) {}
+  document.body.removeChild(ta);
+}
+function copyDayText(date, btn) {
+  const text = buildDayExportText(date);
+  const flash = () => {
+    if (!btn) return;
+    const original = btn.textContent;
+    btn.textContent = "✓ Copiado";
+    setTimeout(() => { btn.textContent = original; }, 1500);
+  };
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(text).then(flash).catch(() => { fallbackCopy(text); flash(); });
+  } else {
+    fallbackCopy(text);
+    flash();
+  }
+}
+document.getElementById("daily-input").addEventListener("change", function(ev){
+  const files = Array.from(ev.target.files); if (!files.length) return;
+  let loaded = 0, skipped = 0;
+  const readers = files.map(file => new Promise(resolve => {
+    const reader = new FileReader();
+    reader.onload = e => {
+      const parsed = parseDailyMarkdown(e.target.result);
+      if (parsed) { dailyDays.push(parsed); loaded++; } else { skipped++; }
+      resolve();
+    };
+    reader.readAsText(file);
+  }));
+  Promise.all(readers).then(() => {
+    document.getElementById("daily-status").innerHTML = `<span class="dot live"></span>${loaded} relatório(s) carregado(s)` + (skipped ? ` · ${skipped} ignorado(s)` : "");
+    renderDaily();
+  });
+});
+document.getElementById("clear-daily").addEventListener("click", function(){
+  dailyDays = []; document.getElementById("daily-input").value = "";
+  document.getElementById("daily-status").innerHTML = `<span class="dot"></span>nenhum relatório carregado`;
+  stopDailyPolling();
+  renderDaily();
+});
+renderDaily();
+
+/* ---- Conexão persistente com a pasta ~/claude-dailies (File System Access API) ---- */
+const supportsFSAccess = "showDirectoryPicker" in window;
+let dailyDirHandle = null;
+let dailyPollTimer = null;
+
+function idbOpen() {
+  return new Promise((resolve, reject) => {
+    const req = indexedDB.open("agent-mesh", 1);
+    req.onupgradeneeded = () => req.result.createObjectStore("handles");
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error);
+  });
+}
+async function idbGet(key) {
+  const db = await idbOpen();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction("handles", "readonly").objectStore("handles").get(key);
+    tx.onsuccess = () => resolve(tx.result || null);
+    tx.onerror = () => reject(tx.error);
+  });
+}
+async function idbSet(key, value) {
+  const db = await idbOpen();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction("handles", "readwrite").objectStore("handles").put(value, key);
+    tx.onsuccess = () => resolve();
+    tx.onerror = () => reject(tx.error);
+  });
+}
+
+async function collectMdFiles(dirHandle, depth) {
+  const files = [];
+  for await (const [name, handle] of dirHandle.entries()) {
+    if (handle.kind === "file" && name.toLowerCase().endsWith(".md")) {
+      files.push(handle);
+    } else if (handle.kind === "directory" && depth > 0) {
+      files.push(...await collectMdFiles(handle, depth - 1));
+    }
+  }
+  return files;
+}
+
+async function loadFromDirHandle(handle, { silent } = {}) {
+  const fileHandles = await collectMdFiles(handle, 3);
+  const days = [];
+  let skipped = 0;
+  for (const fh of fileHandles) {
+    const file = await fh.getFile();
+    const text = await file.text();
+    const parsed = parseDailyMarkdown(text);
+    if (parsed) days.push(parsed); else skipped++;
+  }
+  dailyDays = days;
+  const now = new Date().toLocaleTimeString("pt-BR");
+  document.getElementById("daily-status").innerHTML =
+    `<span class="dot live"></span>${days.length} relatório(s) · pasta conectada · atualizado ${now}` + (skipped ? ` · ${skipped} ignorado(s)` : "");
+  renderDaily();
+}
+
+function startDailyPolling() {
+  stopDailyPolling();
+  dailyPollTimer = setInterval(() => {
+    if (dailyDirHandle && document.getElementById("view-daily").classList.contains("active")) {
+      loadFromDirHandle(dailyDirHandle, { silent: true }).catch(() => {});
+    }
+  }, 30000);
+}
+function stopDailyPolling() {
+  if (dailyPollTimer) { clearInterval(dailyPollTimer); dailyPollTimer = null; }
+}
+
+async function connectDailyFolder() {
+  try {
+    const handle = await window.showDirectoryPicker();
+    const perm = await handle.requestPermission({ mode: "read" });
+    if (perm !== "granted") return;
+    dailyDirHandle = handle;
+    await idbSet("dailies-dir", handle);
+    await loadFromDirHandle(handle);
+    startDailyPolling();
+  } catch (err) {
+    if (err && err.name !== "AbortError") console.error(err);
+  }
+}
+
+async function tryRestoreDailyFolder() {
+  if (!supportsFSAccess) return;
+  const handle = await idbGet("dailies-dir");
+  if (!handle) return;
+  const perm = await handle.queryPermission({ mode: "read" });
+  if (perm === "granted") {
+    dailyDirHandle = handle;
+    await loadFromDirHandle(handle);
+    startDailyPolling();
+  } else {
+    document.getElementById("daily-status").innerHTML = `<span class="dot"></span>pasta conectada antes — clique em Atualizar pra reconectar`;
+  }
+}
+
+if (supportsFSAccess) {
+  document.getElementById("daily-connect").hidden = false;
+  document.getElementById("daily-refresh").hidden = false;
+  document.getElementById("daily-fallback-label").hidden = true;
+  document.getElementById("daily-input").hidden = true;
+  document.getElementById("daily-connect").addEventListener("click", connectDailyFolder);
+  document.getElementById("daily-refresh").addEventListener("click", async () => {
+    if (dailyDirHandle) {
+      const perm = await dailyDirHandle.requestPermission({ mode: "read" });
+      if (perm === "granted") { await loadFromDirHandle(dailyDirHandle); startDailyPolling(); return; }
+    }
+    connectDailyFolder();
+  });
+  tryRestoreDailyFolder();
+}
+
+/* ===================== TABS ===================== */
+document.querySelectorAll("nav.tabs .tab").forEach(btn => {
+  btn.addEventListener("click", () => {
+    document.querySelectorAll("nav.tabs .tab").forEach(b => b.classList.remove("active"));
+    btn.classList.add("active");
+    const target = btn.dataset.tab;
+    document.getElementById("view-tree").classList.toggle("active", target === "tree");
+    document.getElementById("view-daily").classList.toggle("active", target === "daily");
+    document.getElementById("tree-actions").hidden = target !== "tree";
+    document.getElementById("daily-actions").hidden = target !== "daily";
+    if (target === "daily" && dailyDirHandle) {
+      loadFromDirHandle(dailyDirHandle, { silent: true }).catch(() => {});
+    }
+  });
+});
+</script>
+</body>
+</html>
